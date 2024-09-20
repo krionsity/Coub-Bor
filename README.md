@@ -1,4 +1,10 @@
 ga tau , yang penting auto daily task + bisa multiproxy
+
+```
+git clone https://github.com/krionsity/Coub-Bor.git
+cd Coub-Bor
+```
+
 ```
 npm install
 ```
