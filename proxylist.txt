@@ -1,10 +1,2 @@
-http://zacoailo:hu5lso0c7qi6@38.154.227.167:5868
-http://zacoailo:hu5lso0c7qi6@45.127.248.127:5128
-http://zacoailo:hu5lso0c7qi6@207.244.217.165:6712
-http://zacoailo:hu5lso0c7qi6@64.64.118.149:6732
-http://zacoailo:hu5lso0c7qi6@167.160.180.203:6754
-http://zacoailo:hu5lso0c7qi6@104.239.105.125:6655
-http://zacoailo:hu5lso0c7qi6@198.105.101.92:5721
-http://zacoailo:hu5lso0c7qi6@154.36.110.199:6853
-http://zacoailo:hu5lso0c7qi6@204.44.69.89:6342
-http://zacoailo:hu5lso0c7qi6@206.41.172.74:6634
+http://username:password@host:port
+http://username:password@host:port
