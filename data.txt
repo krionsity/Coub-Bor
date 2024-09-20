@@ -1,1 +1,1 @@
-(isi dengan x-auth-token)
+isi dengan x-auth-token
