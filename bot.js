@@ -2,7 +2,6 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-
 // Fungsi untuk membaca task list dari file tasklist.json
 function readTaskListFromFile(filePath) {
     return new Promise((resolve, reject) => {
@@ -36,25 +35,29 @@ function readProxiesFromFile(filePath) {
     return new Promise((resolve, reject) => {
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
-                console.log("Error membaca proxylist.txt:", err);
-                return reject(err);
+                console.log("Tidak ada file proxylist.txt atau error membaca proxylist.txt, menjalankan tanpa proxy.");
+                return resolve([]); // Jika file tidak ada, kembalikan array kosong
             }
-            const proxies = data.trim().split('\n');
+            const proxies = data.trim().split('\n').filter(Boolean); // Hilangkan baris kosong
             resolve(proxies);
         });
     });
 }
 
-// Fungsi untuk membuat fetch dengan proxy
+// Fungsi untuk membuat fetch dengan atau tanpa proxy
 async function fetchWithProxy(url, options, proxy) {
-    const agent = new HttpsProxyAgent(proxy);
-    return fetch(url, { ...options, agent });
+    if (proxy) {
+        const agent = new HttpsProxyAgent(proxy);
+        return fetch(url, { ...options, agent });
+    } else {
+        return fetch(url, options); // Jika tidak ada proxy, fetch langsung tanpa proxy
+    }
 }
 
-// Fungsi untuk mendapatkan informasi pengguna dengan proxy
+// Fungsi untuk mendapatkan informasi pengguna dengan proxy atau tanpa proxy
 async function getUserInfo(accessToken, proxy) {
     try {
-        console.log(`Menggunakan token: ${accessToken} dengan proxy: ${proxy} untuk mendapatkan informasi pengguna`);
+        console.log(`Menggunakan token: ${accessToken} dengan proxy: ${proxy || 'tanpa proxy'} untuk mendapatkan informasi pengguna`);
 
         const response = await fetchWithProxy("https://coub.com/api/v2/sessions/status", {
             headers: {
@@ -86,7 +89,7 @@ async function getUserInfo(accessToken, proxy) {
     }
 }
 
-// Fungsi untuk mengklaim tugas berdasarkan task id dengan proxy
+// Fungsi untuk mengklaim tugas berdasarkan task id dengan proxy atau tanpa proxy
 async function claimTask(accessToken, taskId, proxy) {
     try {
         const response = await fetchWithProxy("https://coub.com/api/v2/user_task_rewards", {
@@ -114,7 +117,7 @@ async function claimTask(accessToken, taskId, proxy) {
     }
 }
 
-// Fungsi untuk mencoba klaim tugas dengan proxy
+// Fungsi untuk mencoba klaim tugas dengan proxy atau tanpa proxy
 async function tryClaimTask(accessToken, taskId, proxy) {
     try {
         const response = await fetchWithProxy("https://analytics.coub.com//api/event", {
@@ -142,7 +145,7 @@ async function tryClaimTask(accessToken, taskId, proxy) {
     }
 }
 
-// Fungsi untuk klaim semua tugas dari task list dengan proxy
+// Fungsi untuk klaim semua tugas dari task list dengan proxy atau tanpa proxy
 async function claimAllTasksForUser(accessToken, taskList, proxy) {
     for (let task of taskList) {
         console.log(`Mengklaim task ${task.title} dengan ID ${task.id}`);
@@ -151,7 +154,7 @@ async function claimAllTasksForUser(accessToken, taskList, proxy) {
     }
 }
 
-// Fungsi utama untuk menjalankan semua proses dengan multi proxy
+// Fungsi utama untuk menjalankan semua proses dengan multi proxy atau tanpa proxy
 async function runForAllAccounts() {
     try {
         console.log("Memulai proses membaca token, proxy, dan task list...");
@@ -170,8 +173,9 @@ async function runForAllAccounts() {
 
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i].trim(); // Trim untuk menghilangkan spasi atau karakter tak terlihat
-            const proxy = proxies[i % proxies.length].trim(); // Pilih proxy dengan metode modulo
-            console.log(`Menjalankan untuk akun dengan token: ${token} dan proxy: ${proxy}`);
+            const proxy = proxies[i % proxies.length] || null; // Pilih proxy atau null jika tidak ada
+
+            console.log(`Menjalankan untuk akun dengan token: ${token} dan proxy: ${proxy || 'tanpa proxy'}`);
 
             // Cek apakah token kosong atau salah
             if (!token || token.length === 0) {
@@ -179,7 +183,7 @@ async function runForAllAccounts() {
                 continue;
             }
 
-            // Gunakan token dan proxy untuk klaim tugas
+            // Gunakan token dan proxy (jika ada) untuk klaim tugas
             const userInfo = await getUserInfo(token, proxy);
 
             if (!userInfo) {
