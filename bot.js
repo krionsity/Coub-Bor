@@ -2,16 +2,24 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
-// Fungsi untuk membaca token dari file data.txt
+// Fungsi untuk membaca token dari file data.json
 async function readTokensFromFile(filePath) {
   return new Promise((resolve, reject) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
       if (err) {
-        console.error("Error membaca file data.txt:", err);
+        console.error("Error membaca file data.json:", err);
         return reject(err);
       }
-      const tokens = data.trim().split('\n').map(token => `Bearer ${token}`);
-      resolve(tokens);
+      try {
+        const jsonData = JSON.parse(data); // Parsing data JSON
+        if (jsonData.tokens && Array.isArray(jsonData.tokens)) {
+          resolve(jsonData.tokens.map(token => token.trim())); // Trim setiap token
+        } else {
+          reject("Format file JSON tidak valid.");
+        }
+      } catch (jsonError) {
+        reject("Error parsing file JSON: " + jsonError);
+      }
     });
   });
 }
@@ -33,17 +41,17 @@ async function readProxiesFromFile(filePath) {
 // Fungsi utama untuk menjalankan proses untuk semua akun
 async function runForAllAccounts() {
   try {
-    const tokens = await readTokensFromFile('data.txt');
+    const tokens = await readTokensFromFile('data.json');
     const proxies = await readProxiesFromFile('proxylist.txt');
     console.log(`Menemukan ${tokens.length} akun dan ${proxies.length} proxy`);
     
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      const proxy = proxies[i % proxies.length] || null; // Gunakan proxy jika ada, atau null jika tidak
+      const proxy = proxies.length > 0 ? proxies[i % proxies.length] : null; // Gunakan proxy jika ada, atau null jika tidak
       console.log(`Akun ${i + 1} ${proxy ? `menggunakan proxy: ${proxy}` : 'tanpa proxy'}`);
 
       // Memanggil fungsi getUserRewards untuk setiap akun dengan atau tanpa proxy
-      await getUserRewards(token, i + 1, proxy);
+      await getUserRewards(`Bearer ${token}`, i + 1, proxy);
     }
   } catch (error) {
     console.error("Error menjalankan untuk semua akun:", error);
@@ -80,7 +88,7 @@ async function getUserRewards(token, accountNumber, proxy) {
       console.log(`Akun ${accountNumber}: Task ditemukan (${data.length} task)`);
       const taskIds = data.map(task => task.id);
       startSpinner(); // Mulai animasi
-      await completeTasks(taskIds, accountNumber, proxy);
+      await completeTasks(taskIds, accountNumber, token, proxy); // Teruskan token di sini
       stopSpinner(); // Hentikan animasi setelah selesai
     } else {
       console.log(`Akun ${accountNumber}: Tidak ada task yang ditemukan.`);
@@ -91,24 +99,25 @@ async function getUserRewards(token, accountNumber, proxy) {
 }
 
 // Fungsi untuk menyelesaikan tasks berdasarkan ID dan proxy
-async function completeTasks(taskIds, accountNumber, proxy) {
+async function completeTasks(taskIds, accountNumber, token, proxy) {
   try {
     const completedTaskIds = [];
-    const options = {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json, text/plain, */*',
-        'authorization': 'Bearer YOUR_BEARER_TOKEN', // Masukkan token di sini
-        'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Microsoft Edge";v="128"',
-        'sec-ch-ua-platform': '"Windows"'
-      }
-    };
-
-    if (proxy) {
-      options.agent = new HttpsProxyAgent(proxy); // Gunakan proxy jika ada
-    }
-
+    
     for (const taskId of taskIds) {
+      const options = {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json, text/plain, */*',
+          'authorization': token, // Pastikan token yang benar digunakan di sini
+          'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Microsoft Edge";v="128"',
+          'sec-ch-ua-platform': '"Windows"'
+        }
+      };
+
+      if (proxy) {
+        options.agent = new HttpsProxyAgent(proxy); // Gunakan proxy jika ada
+      }
+
       const response = await fetch(`https://rewards.coub.com/api/v2/complete_task?task_reward_id=${taskId}`, options);
 
       if (response.ok) {
