@@ -1,1 +1,7 @@
-isi dengan x-auth-token
+{
+  "tokens": [
+"eyJ".
+"eyJ",
+"eyJ"
+]
+}
